@@ -400,12 +400,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       <Footer />
 
       {/* Inquiry Modal */}
-      <InquiryModal
+      {isModalOpen ? <InquiryModal
         saree={saree}
         initialQuantity={quantity}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-      />
+      /> : <></>}
     </div>
   );
 }
