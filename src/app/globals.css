@@ -1,26 +1,80 @@
 @import "tailwindcss";
+@source "../";
+@source "../../src";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --font-serif: "Playfair Display", "Cinzel", "Baskerville", "Georgia", "Cambria", serif;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  
+  --maroon-primary: #722F37;
+  --maroon-dark: #4A151C;
+  --maroon-light: #8E3B45;
+  --gold-primary: #D4AF37;
+  --gold-dark: #B8860B;
+  --gold-light: #F4E5BD;
+  --gold-sheen: #E5C365;
+  --silk-ivory: #FDFBF7;
+  --silk-warm: #F8F3EA;
+  --charcoal-rich: #241416;
+  --charcoal-muted: #594446;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    background-color: var(--silk-ivory);
+    color: var(--charcoal-rich);
+    font-family: var(--font-sans);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  h1, h2, h3, h4, .font-serif-luxury {
+    font-family: var(--font-serif);
+    letter-spacing: -0.01em;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: #f1ebd8;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4af37;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #722f37;
+}
+
+/* Gold shimmer effect */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.gold-gradient-text {
+  background: linear-gradient(135deg, #722F37 0%, #B8860B 50%, #D4AF37 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-shimmer-bg {
+  background: linear-gradient(90deg, rgba(212,175,55,0.08) 0%, rgba(212,175,55,0.25) 50%, rgba(212,175,55,0.08) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+.gold-border-ornate {
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  box-shadow: 0 4px 20px -2px rgba(114, 47, 55, 0.06);
+}
+
+.saree-card-hover {
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.saree-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 32px -8px rgba(114, 47, 55, 0.16), 0 0 0 1px rgba(212, 175, 55, 0.4);
 }
