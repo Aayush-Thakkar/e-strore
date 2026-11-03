@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { Saree, SareeFormData, ProductType } from "@/types/saree";
+import { Saree, SareeFormData, ProductType, AVAILABLE_SIZES } from "@/types/saree";
 import {
   fetchAllSarees,
   createSaree,
@@ -30,7 +30,16 @@ import {
   Eye,
   Layers,
   X,
+  Check,
+  Ruler,
+  Image as ImageIcon,
 } from "lucide-react";
+
+interface StagedPhoto {
+  id: string;
+  file?: File;
+  previewUrl: string;
+}
 
 export default function AdminDashboardPage() {
   const router = useRouter();
@@ -53,11 +62,8 @@ export default function AdminDashboardPage() {
   const [isDeletingId, setIsDeletingId] = useState<string | null>(null);
   const [toastMessage, setToastMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  // Deferred Image Upload states (Files held locally until final Save/Update button is clicked)
-  const [pendingFile1, setPendingFile1] = useState<File | null>(null);
-  const [previewUrl1, setPreviewUrl1] = useState<string | null>(null);
-  const [pendingFile2, setPendingFile2] = useState<File | null>(null);
-  const [previewUrl2, setPreviewUrl2] = useState<string | null>(null);
+  // Deferred Image Upload states (Up to 8 photos, Slot 0 is Mandatory Primary)
+  const [stagedPhotos, setStagedPhotos] = useState<StagedPhoto[]>([]);
 
   // Form states
   const [formData, setFormData] = useState<SareeFormData>({
@@ -67,11 +73,13 @@ export default function AdminDashboardPage() {
     type: "Saree",
     imageUrl: "",
     secondaryImageUrl: "",
+    secondaryImages: [],
     description: "",
     fabric: "100% Pure Mulberry Silk",
     blouseIncluded: true,
     color: "",
     featured: false,
+    sizes: [],
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -85,16 +93,12 @@ export default function AdminDashboardPage() {
 
   // Helper to safely revoke and reset local preview URLs
   const cleanupPreviews = () => {
-    if (previewUrl1 && previewUrl1.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl1);
-    }
-    if (previewUrl2 && previewUrl2.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl2);
-    }
-    setPendingFile1(null);
-    setPreviewUrl1(null);
-    setPendingFile2(null);
-    setPreviewUrl2(null);
+    stagedPhotos.forEach((p) => {
+      if (p.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(p.previewUrl);
+      }
+    });
+    setStagedPhotos([]);
   };
 
   useEffect(() => {
@@ -164,12 +168,15 @@ export default function AdminDashboardPage() {
       type: "Saree",
       imageUrl: "",
       secondaryImageUrl: "",
+      secondaryImages: [],
       description: "",
       fabric: "Pure Handloom Silk",
       blouseIncluded: true,
       color: "",
       featured: false,
+      sizes: [],
     });
+    setStagedPhotos([]);
     setFormErrors({});
     setIsFormModalOpen(true);
   };
@@ -178,6 +185,31 @@ export default function AdminDashboardPage() {
   const handleOpenEdit = (saree: Saree) => {
     cleanupPreviews();
     setEditingSaree(saree);
+
+    const initialPhotos: StagedPhoto[] = [];
+    if (saree.imageUrl) {
+      initialPhotos.push({
+        id: "primary",
+        previewUrl: saree.imageUrl,
+      });
+    }
+    if (Array.isArray(saree.secondaryImages) && saree.secondaryImages.length > 0) {
+      saree.secondaryImages.forEach((url, idx) => {
+        if (url && !initialPhotos.some((p) => p.previewUrl === url) && initialPhotos.length < 8) {
+          initialPhotos.push({
+            id: `sec-${idx}-${Date.now()}`,
+            previewUrl: url,
+          });
+        }
+      });
+    } else if (saree.secondaryImageUrl && initialPhotos.length < 8) {
+      initialPhotos.push({
+        id: "sec-legacy",
+        previewUrl: saree.secondaryImageUrl,
+      });
+    }
+    setStagedPhotos(initialPhotos);
+
     setFormData({
       name: saree.name,
       price: saree.price,
@@ -185,11 +217,13 @@ export default function AdminDashboardPage() {
       type: saree.type,
       imageUrl: saree.imageUrl,
       secondaryImageUrl: saree.secondaryImageUrl || "",
+      secondaryImages: saree.secondaryImages || [],
       description: saree.description || "",
       fabric: saree.fabric || "",
       blouseIncluded: Boolean(saree.blouseIncluded),
       color: saree.color || "",
       featured: Boolean(saree.featured),
+      sizes: saree.sizes || [],
     });
     setFormErrors({});
     setIsFormModalOpen(true);
@@ -201,16 +235,17 @@ export default function AdminDashboardPage() {
     setEditingSaree(null);
   };
 
-  // Validate form with 250-word constraint
+  // Validate form with 250-word constraint & Photo 1 mandatory
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
     if (!formData.name.trim()) errors.name = "Product name is required.";
     if (!formData.price || Number(formData.price) <= 0) errors.price = "Enter a valid positive price.";
-    
-    // Valid if either a local photo was selected OR an existing URL exists
-    if (!pendingFile1 && !formData.imageUrl.trim()) {
-      errors.imageUrl = "Please select Primary Photo (Image 1) or enter URL.";
+
+    // Only Photo 1 (Primary) is mandatory; photos 2-8 are optional
+    if (stagedPhotos.length === 0 || !stagedPhotos[0]?.previewUrl) {
+      errors.imageUrl = "Please select Primary Photo (Photo 1). It is mandatory.";
     }
+
     if (!formData.type) errors.type = "Please select product category.";
 
     // 250 word constraint on description
@@ -223,54 +258,71 @@ export default function AdminDashboardPage() {
     return Object.keys(errors).length === 0;
   };
 
-  // Stage Photo 1 locally (DO NOT upload until final submit)
-  const handleImage1Select = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Multi-photo selection (upload simultaneously up to 8 photos)
+  const handleSimultaneousPhotosSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const availableSlots = 8 - stagedPhotos.length;
+    if (availableSlots <= 0) {
+      showToast("Maximum of 8 photos already reached.", "error");
+      return;
+    }
+
+    const filesToAdd = Array.from(files).slice(0, availableSlots);
+    if (files.length > availableSlots) {
+      showToast(`Added ${availableSlots} photos (maximum 8 photos allowed).`, "error");
+    }
+
+    const newPhotos: StagedPhoto[] = filesToAdd.map((file, i) => ({
+      id: `new-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 6)}`,
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+
+    setStagedPhotos((prev) => [...prev, ...newPhotos]);
+    if (formErrors.imageUrl) {
+      setFormErrors((prev) => ({ ...prev, imageUrl: "" }));
+    }
+    e.target.value = "";
+  };
+
+  // Replace single photo slot
+  const handleReplacePhoto = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (previewUrl1 && previewUrl1.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl1);
-    }
+    setStagedPhotos((prev) => {
+      const copy = [...prev];
+      if (copy[index]?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(copy[index].previewUrl);
+      }
+      copy[index] = {
+        id: `replace-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+      };
+      return copy;
+    });
 
-    const localUrl = URL.createObjectURL(file);
-    setPendingFile1(file);
-    setPreviewUrl1(localUrl);
-    setFormErrors((prev) => ({ ...prev, imageUrl: "" }));
+    if (index === 0 && formErrors.imageUrl) {
+      setFormErrors((prev) => ({ ...prev, imageUrl: "" }));
+    }
+    e.target.value = "";
   };
 
-  const handleRemoveImage1 = () => {
-    if (previewUrl1 && previewUrl1.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl1);
-    }
-    setPendingFile1(null);
-    setPreviewUrl1(null);
-    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+  // Remove photo slot
+  const handleRemovePhoto = (index: number) => {
+    setStagedPhotos((prev) => {
+      const target = prev[index];
+      if (target?.previewUrl.startsWith("blob:")) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
-  // Stage Photo 2 locally (DO NOT upload until final submit)
-  const handleImage2Select = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (previewUrl2 && previewUrl2.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl2);
-    }
-
-    const localUrl = URL.createObjectURL(file);
-    setPendingFile2(file);
-    setPreviewUrl2(localUrl);
-  };
-
-  const handleRemoveImage2 = () => {
-    if (previewUrl2 && previewUrl2.startsWith("blob:")) {
-      URL.revokeObjectURL(previewUrl2);
-    }
-    setPendingFile2(null);
-    setPreviewUrl2(null);
-    setFormData((prev) => ({ ...prev, secondaryImageUrl: "" }));
-  };
-
-  // Save Product (Upload images ONLY NOW when final button is hit)
+  // Save Product (Upload all staged photos now concurrently)
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) {
@@ -281,45 +333,37 @@ export default function AdminDashboardPage() {
     setIsSaving(true);
 
     try {
-      let finalImageUrl = formData.imageUrl;
-      let finalSecondaryImageUrl = formData.secondaryImageUrl || undefined;
       const oldImagesToClean: string[] = [];
-
-      // 1. Upload Photo 1 only now if a new local file was selected
-      if (pendingFile1) {
-        const res1 = await uploadSareeImage(pendingFile1);
-        if (res1.error || !res1.url) {
-          setIsSaving(false);
-          showToast(res1.error || "Failed to upload Photo 1.", "error");
-          return;
+      if (editingSaree) {
+        if (editingSaree.imageUrl) oldImagesToClean.push(editingSaree.imageUrl);
+        if (editingSaree.secondaryImageUrl) oldImagesToClean.push(editingSaree.secondaryImageUrl);
+        if (Array.isArray(editingSaree.secondaryImages)) {
+          oldImagesToClean.push(...editingSaree.secondaryImages);
         }
-        if (editingSaree && editingSaree.imageUrl && editingSaree.imageUrl !== res1.url) {
-          oldImagesToClean.push(editingSaree.imageUrl);
-        }
-        finalImageUrl = res1.url;
       }
 
-      // 2. Upload Photo 2 only now if a new local file was selected
-      if (pendingFile2) {
-        const res2 = await uploadSareeImage(pendingFile2);
-        if (res2.error || !res2.url) {
-          setIsSaving(false);
-          showToast(res2.error || "Failed to upload Photo 2.", "error");
-          return;
-        }
-        if (editingSaree && editingSaree.secondaryImageUrl && editingSaree.secondaryImageUrl !== res2.url) {
-          oldImagesToClean.push(editingSaree.secondaryImageUrl);
-        }
-        finalSecondaryImageUrl = res2.url;
-      }
+      // Upload all pending staged files in parallel
+      const uploadedUrls: string[] = await Promise.all(
+        stagedPhotos.map(async (photo, idx) => {
+          if (photo.file) {
+            const res = await uploadSareeImage(photo.file);
+            if (res.error || !res.url) {
+              throw new Error(res.error || `Failed to upload Photo #${idx + 1}.`);
+            }
+            return res.url;
+          }
+          return photo.previewUrl;
+        })
+      );
+
+      const finalImageUrl = uploadedUrls[0];
+      const finalSecondaryImages = uploadedUrls.slice(1);
+      const finalSecondaryImageUrl = finalSecondaryImages[0] || undefined;
+
+      // Identify deleted images to purge from Supabase storage bucket
+      const imagesToPurge = oldImagesToClean.filter((oldUrl) => !uploadedUrls.includes(oldUrl));
 
       if (editingSaree) {
-        // If secondary image was removed completely
-        if (!formData.secondaryImageUrl && !pendingFile2 && editingSaree.secondaryImageUrl) {
-          oldImagesToClean.push(editingSaree.secondaryImageUrl);
-          finalSecondaryImageUrl = undefined;
-        }
-
         const res = await updateSaree(editingSaree.id, {
           name: formData.name,
           price: Number(formData.price),
@@ -327,19 +371,21 @@ export default function AdminDashboardPage() {
           type: formData.type,
           imageUrl: finalImageUrl,
           secondaryImageUrl: finalSecondaryImageUrl,
+          secondaryImages: finalSecondaryImages,
           description: formData.description,
           fabric: formData.fabric,
           blouseIncluded: formData.blouseIncluded,
           color: formData.color,
           featured: formData.featured,
+          sizes: formData.sizes,
         });
 
         setIsSaving(false);
         if (res.error) {
           showToast(res.error, "error");
         } else {
-          if (oldImagesToClean.length > 0) {
-            deleteStorageImages(oldImagesToClean);
+          if (imagesToPurge.length > 0) {
+            deleteStorageImages(imagesToPurge);
           }
           showToast("Product details updated successfully.");
           cleanupPreviews();
@@ -355,11 +401,13 @@ export default function AdminDashboardPage() {
           type: formData.type,
           imageUrl: finalImageUrl,
           secondaryImageUrl: finalSecondaryImageUrl,
+          secondaryImages: finalSecondaryImages,
           description: formData.description,
           fabric: formData.fabric,
           blouseIncluded: formData.blouseIncluded,
           color: formData.color,
           featured: formData.featured,
+          sizes: formData.sizes,
         });
 
         setIsSaving(false);
@@ -385,6 +433,7 @@ export default function AdminDashboardPage() {
     const extraUrls: string[] = [];
     if (target?.imageUrl) extraUrls.push(target.imageUrl);
     if (target?.secondaryImageUrl) extraUrls.push(target.secondaryImageUrl);
+    if (Array.isArray(target?.secondaryImages)) extraUrls.push(...target.secondaryImages);
 
     const res = await deleteSaree(isDeletingId, extraUrls);
     setIsDeletingId(null);
@@ -562,7 +611,7 @@ export default function AdminDashboardPage() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-[#F8F3EA] border-b border-[#EADBCE] text-stone-600 uppercase font-semibold">
                     <tr>
-                      <th className="py-3 px-4">Photos (Max 2)</th>
+                      <th className="py-3 px-4">Photos (Up to 8)</th>
                       <th className="py-3 px-4">Product Name</th>
                       <th className="py-3 px-4">Category</th>
                       <th className="py-3 px-4">Price</th>
@@ -578,36 +627,42 @@ export default function AdminDashboardPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredSarees.map((saree) => (
-                        <tr key={saree.id} className="hover:bg-[#FDFBF7] transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-1.5">
-                              {/* Image 1 Preview */}
-                              <div className="relative w-11 h-14 rounded-md overflow-hidden bg-stone-100 flex-shrink-0 border border-[#EADBCE]">
-                                <ImageWithFallback
-                                  src={saree.imageUrl}
-                                  alt="Image 1"
-                                  fill
-                                  className="object-cover"
-                                />
+                      filteredSarees.map((saree) => {
+                        const allThumbnails: string[] = [saree.imageUrl];
+                        if (Array.isArray(saree.secondaryImages)) {
+                          saree.secondaryImages.forEach((img) => {
+                            if (img && !allThumbnails.includes(img)) allThumbnails.push(img);
+                          });
+                        } else if (saree.secondaryImageUrl && !allThumbnails.includes(saree.secondaryImageUrl)) {
+                          allThumbnails.push(saree.secondaryImageUrl);
+                        }
+
+                        return (
+                          <tr key={saree.id} className="hover:bg-[#FDFBF7] transition-colors">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-1">
+                                {allThumbnails.slice(0, 3).map((img, i) => (
+                                  <div
+                                    key={i}
+                                    className={`relative w-9 h-12 rounded-md overflow-hidden bg-stone-100 flex-shrink-0 border ${
+                                      i === 0 ? "border-[#D4AF37]" : "border-[#EADBCE]"
+                                    }`}
+                                  >
+                                    <ImageWithFallback
+                                      src={img}
+                                      alt={`Photo ${i + 1}`}
+                                      fill
+                                      className="object-cover"
+                                    />
+                                  </div>
+                                ))}
+                                {allThumbnails.length > 3 && (
+                                  <div className="w-7 h-12 rounded-md bg-[#F8F3EA] border border-[#D4AF37]/50 flex items-center justify-center text-[10px] font-bold text-[#722F37]">
+                                    +{allThumbnails.length - 3}
+                                  </div>
+                                )}
                               </div>
-                              {/* Image 2 Preview */}
-                              {saree.secondaryImageUrl ? (
-                                <div className="relative w-11 h-14 rounded-md overflow-hidden bg-stone-100 flex-shrink-0 border border-[#EADBCE]">
-                                  <ImageWithFallback
-                                    src={saree.secondaryImageUrl}
-                                    alt="Image 2"
-                                    fill
-                                    className="object-cover"
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-11 h-14 rounded-md bg-stone-50 border border-dashed border-stone-200 flex items-center justify-center text-[9px] text-stone-400">
-                                  No 2nd
-                                </div>
-                              )}
-                            </div>
-                          </td>
+                            </td>
 
                           <td className="py-3 px-4">
                             <h4 className="font-serif-luxury font-bold text-stone-900 text-sm line-clamp-1">
@@ -665,8 +720,8 @@ export default function AdminDashboardPage() {
                             </div>
                           </td>
                         </tr>
-                      ))
-                    )}
+                      );
+                    }))}
                   </tbody>
                 </table>
               </div>
@@ -782,136 +837,192 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
 
-              {/* 2 PHOTOS SECTION (Deferred upload until final submit) */}
-              <div className="p-4 bg-white rounded-xl border border-[#EADBCE] space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[#722F37] uppercase tracking-wide">
-                    Product Photographs (Up to 2 Photos)
-                  </label>
-                  <span className="text-[11px] text-stone-500 font-medium">
-                    Photos upload automatically when you click save
-                  </span>
-                </div>
+              {/* UP TO 8 PHOTOS SECTION (Simultaneous multi-upload + 1 mandatory + 7 optional) */}
+              <div className="p-4 bg-white rounded-xl border border-[#EADBCE] space-y-3.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <label className="text-xs font-bold text-[#722F37] uppercase tracking-wide flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-[#B8860B]" />
+                      <span>Product Photographs ({stagedPhotos.length} / 8 Photos)</span>
+                    </label>
+                    <p className="text-[11px] text-stone-500">
+                      Photo 1 is <strong className="text-stone-800">Mandatory</strong> (Cover). Photos 2–8 are <strong className="text-stone-800">Optional</strong>.
+                    </p>
+                  </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Photo 1: Primary Image */}
-                  <div className="p-3 bg-[#FDFBF7] rounded-lg border border-[#EADBCE] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-stone-800">
-                        Primary Image (Image 1) <span className="text-red-500">*</span>
-                      </span>
-                      {(previewUrl1 || formData.imageUrl) && (
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage1}
-                          className="text-[11px] text-red-600 hover:text-red-800 hover:underline font-medium"
-                        >
-                          Remove
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="relative aspect-[3/4] w-full rounded-lg overflow-hidden bg-stone-100 border border-[#EADBCE] flex items-center justify-center">
-                      {previewUrl1 || formData.imageUrl ? (
-                        <ImageWithFallback
-                          src={previewUrl1 || formData.imageUrl}
-                          alt="Primary Photo Preview"
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <span className="text-[11px] text-stone-400">No photo selected</span>
-                      )}
-                      {pendingFile1 && (
-                        <div className="absolute bottom-2 left-2 right-2 bg-emerald-900/90 text-emerald-100 text-[10px] py-1 px-2 rounded backdrop-blur-sm text-center font-medium shadow">
-                          Selected (Uploads on save)
-                        </div>
-                      )}
-                    </div>
-
-                    <label className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#F8F3EA] hover:bg-[#F2ECE4] text-[#722F37] border border-[#D4AF37]/50 text-xs font-semibold cursor-pointer transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-[#B8860B]" />
-                      <span>{pendingFile1 || formData.imageUrl ? "Change Photo 1" : "Choose Photo 1"}</span>
+                  {stagedPhotos.length < 8 && (
+                    <label className="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#722F37] text-[#F4E5BD] hover:bg-[#54151C] text-xs font-semibold cursor-pointer shadow-sm transition-all active:scale-[0.99]">
+                      <Upload className="w-3.5 h-3.5 text-[#D4AF37]" />
+                      <span>Upload Photos (Select up to 8)</span>
                       <input
                         type="file"
+                        multiple
                         accept="image/*"
-                        onChange={handleImage1Select}
+                        onChange={handleSimultaneousPhotosSelect}
                         disabled={isSaving}
                         className="hidden"
                       />
                     </label>
+                  )}
+                </div>
 
-                    <input
-                      type="url"
-                      value={formData.imageUrl}
-                      onChange={(e) => {
-                        setFormData({ ...formData, imageUrl: e.target.value });
-                        if (formErrors.imageUrl) setFormErrors({ ...formErrors, imageUrl: "" });
-                      }}
-                      placeholder="or paste image 1 URL"
-                      className="w-full px-2.5 py-1 text-xs bg-white rounded border border-[#EADBCE] focus:border-[#722F37]"
-                    />
-                    {formErrors.imageUrl && (
-                      <p className="text-[11px] text-red-600">{formErrors.imageUrl}</p>
-                    )}
+                {formErrors.imageUrl && (
+                  <div className="p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span>{formErrors.imageUrl}</span>
                   </div>
+                )}
 
-                  {/* Photo 2: Secondary Image */}
-                  <div className="p-3 bg-[#FDFBF7] rounded-lg border border-[#EADBCE] space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold text-stone-800">
-                        Secondary Image (Image 2 - Optional)
-                      </span>
-                      {(previewUrl2 || formData.secondaryImageUrl) && (
+                {/* Photos Grid: 8 Slots */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {stagedPhotos.map((photo, index) => (
+                    <div
+                      key={photo.id || index}
+                      className={`relative rounded-xl border p-2 flex flex-col justify-between space-y-2 ${
+                        index === 0
+                          ? "bg-[#FDFBF7] border-[#D4AF37]/60 shadow-sm ring-1 ring-[#D4AF37]/30"
+                          : "bg-[#FAFAFA] border-[#EADBCE]"
+                      }`}
+                    >
+                      {/* Badge & Remove */}
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            index === 0
+                              ? "bg-[#722F37] text-[#F4E5BD]"
+                              : "bg-stone-200 text-stone-700"
+                          }`}
+                        >
+                          {index === 0 ? "1. Primary *" : `#${index + 1}`}
+                        </span>
                         <button
                           type="button"
-                          onClick={handleRemoveImage2}
-                          className="text-[11px] text-red-600 hover:text-red-800 hover:underline font-medium"
+                          onClick={() => handleRemovePhoto(index)}
+                          className="p-1 text-stone-400 hover:text-red-600 rounded transition-colors"
+                          title="Remove this photo"
                         >
-                          Remove
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
-                      )}
-                    </div>
+                      </div>
 
-                    <div className="relative aspect-[3/4] w-full rounded-lg overflow-hidden bg-stone-100 border border-[#EADBCE] flex items-center justify-center">
-                      {previewUrl2 || formData.secondaryImageUrl ? (
+                      {/* Thumbnail */}
+                      <div className="relative aspect-[3/4] w-full rounded-lg overflow-hidden bg-stone-100 border border-[#EADBCE]">
                         <ImageWithFallback
-                          src={previewUrl2 || formData.secondaryImageUrl}
-                          alt="Secondary Photo Preview"
+                          src={photo.previewUrl}
+                          alt={`Photo ${index + 1}`}
                           fill
                           className="object-cover"
                         />
-                      ) : (
-                        <span className="text-[11px] text-stone-400">No secondary photo</span>
-                      )}
-                      {pendingFile2 && (
-                        <div className="absolute bottom-2 left-2 right-2 bg-emerald-900/90 text-emerald-100 text-[10px] py-1 px-2 rounded backdrop-blur-sm text-center font-medium shadow">
-                          Selected (Uploads on save)
-                        </div>
-                      )}
-                    </div>
+                        {photo.file && (
+                          <span className="absolute bottom-1 left-1 right-1 bg-emerald-900/90 text-emerald-100 text-[8px] py-0.5 px-1 rounded text-center font-medium backdrop-blur-sm">
+                            Ready on save
+                          </span>
+                        )}
+                      </div>
 
-                    <label className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-[#F8F3EA] hover:bg-[#F2ECE4] text-[#722F37] border border-[#D4AF37]/50 text-xs font-semibold cursor-pointer transition-colors">
-                      <Upload className="w-3.5 h-3.5 text-[#B8860B]" />
-                      <span>{pendingFile2 || formData.secondaryImageUrl ? "Change Photo 2" : "Choose Photo 2"}</span>
+                      {/* Change Photo input */}
+                      <label className="text-[10px] text-center font-semibold text-[#722F37] hover:underline cursor-pointer block py-0.5">
+                        Change Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleReplacePhoto(index, e)}
+                          disabled={isSaving}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                  ))}
+
+                  {/* Add More Slot (if < 8) */}
+                  {stagedPhotos.length < 8 && (
+                    <label className="border-2 border-dashed border-[#D4AF37]/50 hover:border-[#722F37] bg-[#FDFBF7] hover:bg-[#F8F3EA] rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer min-h-[140px] transition-all group">
+                      <div className="w-8 h-8 rounded-full bg-[#F4E5BD] border border-[#D4AF37] flex items-center justify-center text-[#722F37] mb-1.5 group-hover:scale-110 transition-transform">
+                        <Plus className="w-4 h-4" />
+                      </div>
+                      <span className="text-xs font-bold text-[#722F37]">
+                        {stagedPhotos.length === 0 ? "Add Photo 1 *" : `Add Photo #${stagedPhotos.length + 1}`}
+                      </span>
+                      <span className="text-[10px] text-stone-500 mt-0.5">
+                        {stagedPhotos.length === 0 ? "(Mandatory cover)" : "(Optional gallery)"}
+                      </span>
                       <input
                         type="file"
+                        multiple
                         accept="image/*"
-                        onChange={handleImage2Select}
+                        onChange={handleSimultaneousPhotosSelect}
                         disabled={isSaving}
                         className="hidden"
                       />
                     </label>
+                  )}
+                </div>
+              </div>
 
-                    <input
-                      type="url"
-                      value={formData.secondaryImageUrl}
-                      onChange={(e) => setFormData({ ...formData, secondaryImageUrl: e.target.value })}
-                      placeholder="or paste image 2 URL"
-                      className="w-full px-2.5 py-1 text-xs bg-white rounded border border-[#EADBCE] focus:border-[#722F37]"
-                    />
+              {/* AVAILABLE SIZES SELECTION (Requirement 9) */}
+              <div className="p-4 bg-white rounded-xl border border-[#EADBCE] space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                  <div>
+                    <label className="text-xs font-bold text-[#722F37] uppercase tracking-wide flex items-center gap-1.5">
+                      <Ruler className="w-3.5 h-3.5 text-[#B8860B]" />
+                      <span>Available Sizes ({formData.type === "Saree" ? "Free-size by default for Sarees" : "Click to select available stock"})</span>
+                    </label>
+                    <p className="text-[11px] text-stone-500">
+                      Customers will choose from these sizes during WhatsApp checkout on Suits, Lehengas & Indo-Western.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, sizes: [...AVAILABLE_SIZES] })}
+                      className="text-[11px] font-semibold text-[#722F37] hover:underline"
+                    >
+                      Select All
+                    </button>
+                    <span className="text-stone-300">|</span>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, sizes: [] })}
+                      className="text-[11px] font-semibold text-stone-500 hover:underline"
+                    >
+                      Clear
+                    </button>
                   </div>
                 </div>
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {AVAILABLE_SIZES.map((sz) => {
+                    const isSelected = formData.sizes?.includes(sz);
+                    return (
+                      <button
+                        key={sz}
+                        type="button"
+                        onClick={() => {
+                          const current = formData.sizes || [];
+                          const updated = isSelected
+                            ? current.filter((s) => s !== sz)
+                            : [...current, sz];
+                          setFormData({ ...formData, sizes: updated });
+                        }}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                          isSelected
+                            ? "bg-[#722F37] text-[#F4E5BD] border border-[#D4AF37] shadow-sm scale-105"
+                            : "bg-[#FDFBF7] text-stone-700 border border-[#EADBCE] hover:border-[#722F37]"
+                        }`}
+                      >
+                        {isSelected && <Check className="w-3 h-3 text-[#D4AF37]" />}
+                        <span>{sz}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {formData.sizes && formData.sizes.length > 0 && (
+                  <p className="text-[11px] text-stone-600 font-medium">
+                    Active in Catalogue: {formData.sizes.join(", ")}
+                  </p>
+                )}
               </div>
 
               {/* Fabric & Color */}

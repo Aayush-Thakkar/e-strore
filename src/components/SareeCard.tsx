@@ -160,22 +160,22 @@ export function SareeCard({ saree, onOpenInquiry }: SareeCardProps) {
           </div>
 
           {/* Place Query Button & Details */}
-          <div className="flex flex-col sm:grid sm:grid-cols-2 gap-1.5 sm:gap-2">
+          <div className="grid grid-cols-2 gap-1.5 sm:gap-2">
             <button
               type="button"
               onClick={handleOrderClick}
-              className="w-full flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2.5 px-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#722F37] to-[#54151C] hover:from-[#54151C] hover:to-[#380E13] text-[#F4E5BD] font-semibold text-[11px] sm:text-xs tracking-wide shadow-sm hover:shadow transition-all active:scale-[0.98]"
+              className="w-full flex items-center justify-center gap-1 sm:gap-1.5 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-lg sm:rounded-xl bg-gradient-to-r from-[#722F37] to-[#54151C] hover:from-[#54151C] hover:to-[#380E13] text-[#F4E5BD] font-semibold text-[10.5px] sm:text-xs tracking-tight sm:tracking-wide shadow-sm hover:shadow transition-all active:scale-[0.98]"
             >
-              <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#25D366]" />
+              <MessageCircle className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#25D366] flex-shrink-0" />
               <span>Query</span>
             </button>
 
             <Link
               href={`/saree/${saree.slug || saree.id}`}
-              className="w-full flex items-center justify-center gap-1 py-1.5 sm:py-2.5 px-2 rounded-lg sm:rounded-xl border border-[#D4AF37]/60 text-[#722F37] hover:bg-[#FDFBF7] font-semibold text-[11px] sm:text-xs transition-colors"
+              className="w-full flex items-center justify-center gap-1 py-1.5 sm:py-2 px-1.5 sm:px-2 rounded-lg sm:rounded-xl border border-[#D4AF37]/60 text-[#722F37] hover:bg-[#FDFBF7] font-semibold text-[10.5px] sm:text-xs transition-colors"
             >
               <span>Details</span>
-              <ArrowRight className="w-3 h-3 text-[#B8860B]" />
+              <ArrowRight className="w-3 h-3 text-[#B8860B] flex-shrink-0" />
             </Link>
           </div>
         </div>

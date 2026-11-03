@@ -24,6 +24,10 @@ export default function CatalogPage() {
   const [inquiryQuantity, setInquiryQuantity] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  // Pagination State (12 products initially + Load More)
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
   useEffect(() => {
     async function loadData() {
       setLoading(true);
@@ -42,6 +46,11 @@ export default function CatalogPage() {
       }
     }
   }, []);
+
+  // Reset pagination whenever filters or search query change
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const handleOpenInquiry = (saree: Saree, quantity: number) => {
     setActiveInquirySaree(saree);
@@ -90,10 +99,23 @@ export default function CatalogPage() {
       });
   }, [sarees, searchQuery, selectedCategory, sortBy]);
 
+  // Paginated Products (12 items per batch)
+  const displayedSarees = useMemo(() => {
+    return filteredSarees.slice(0, visibleCount);
+  }, [filteredSarees, visibleCount]);
+
+  const hasMore = filteredSarees.length > visibleCount;
+  const remainingCount = filteredSarees.length - visibleCount;
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, filteredSarees.length));
+  };
+
   const clearAllFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
     setSortBy("featured");
+    setVisibleCount(PAGE_SIZE);
   };
 
   const hasActiveFilters = searchQuery !== "" || selectedCategory !== "All" || sortBy !== "featured";
@@ -103,34 +125,49 @@ export default function CatalogPage() {
       <Header />
 
       {/* Hero Showcase Banner */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-[#54151C] to-[#722F37] text-[#FDFBF7] py-12 sm:py-16 px-4 border-b border-[#D4AF37]/40 shadow-inner">
+      <section className="relative overflow-hidden bg-gradient-to-b from-[#54151C] to-[#722F37] text-[#FDFBF7] py-8 sm:py-14 px-3 sm:px-4 border-b border-[#D4AF37]/40 shadow-inner">
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
 
-        <div className="max-w-7xl mx-auto text-center relative z-10 space-y-3">
-          <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full text-xs font-semibold bg-[#D4AF37]/20 text-[#F4E5BD] border border-[#D4AF37]/40">
-            <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-            <span>Anandam Sarees • Festive & Wedding Collection</span>
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-3 sm:space-y-4">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#D4AF37]/20 text-[#F4E5BD] border border-[#D4AF37]/40">
+            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37]" />
+            <span>आनन्दम् • Authentic Ethnic Atelier</span>
           </div>
 
-          <h1 className="font-serif-luxury text-3xl sm:text-5xl font-bold tracking-tight text-[#FDFBF7]">
-            Royal Ethnic Wear Catalogue
+          <h1 className="font-serif-luxury text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FDFBF7] leading-tight px-2">
+            Where Affordability Meets Premiumness
           </h1>
 
-          <p className="max-w-2xl mx-auto text-sm sm:text-base text-[#F4E5BD]/90 font-light leading-relaxed">
-            Discover exquisite handcrafted Sarees, royal Suits, bridal Lehengas, and contemporary Indo-Western designs. Direct atelier ordering via WhatsApp.
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base text-[#F4E5BD]/90 font-light leading-relaxed px-3">
+            Handcrafted Sarees, bespoke Suits, bridal Lehengas, and Indo-Western wear sourced directly from authentic weaver hubs. Pure fabrics, transparent fair pricing, and personal support on WhatsApp — luxury ethnic wear made genuinely accessible.
           </p>
 
-          <div className="pt-2 text-xs text-[#D4AF37] font-semibold tracking-widest uppercase">
-            {sarees.length} Designs in Collection
+          {/* Grounded Trust Pillars for Mobile & Desktop */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-[#F4E5BD]">
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
+              ✓ Direct Weaver Sourcing
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
+              ✓ No Middleman Markups
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
+              ✓ Personal WhatsApp Ordering
+            </span>
           </div>
+
+          {sarees.length > 0 && (
+            <div className="pt-1 text-[11px] sm:text-xs text-[#D4AF37] font-semibold tracking-widest uppercase">
+              {sarees.length} Designs in Collection
+            </div>
+          )}
         </div>
       </section>
 
       {/* Main Catalog Workspace */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-grow w-full">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-10 flex-grow w-full">
         {/* Category Tabs & Filter Toolbar */}
-        <div className="bg-[#FFFFFF] p-4 sm:p-6 rounded-2xl border border-[#EADBCE] shadow-sm mb-8 space-y-4">
+        <div className="bg-[#FFFFFF] p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-[#EADBCE] shadow-sm mb-6 sm:mb-8 space-y-3 sm:space-y-4">
           {/* 4 Category Pill Buttons */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
@@ -207,7 +244,8 @@ export default function CatalogPage() {
         {/* Results Counter */}
         <div className="flex items-center justify-between mb-6">
           <p className="text-xs sm:text-sm text-stone-600 font-medium">
-            Showing <strong className="text-[#722F37] font-bold">{filteredSarees.length}</strong> items
+            Showing <strong className="text-[#722F37] font-bold">{displayedSarees.length}</strong> of{" "}
+            <strong className="text-[#722F37] font-bold">{filteredSarees.length}</strong> items
             {selectedCategory !== "All" && ` in ${selectedCategory}`}
           </p>
         </div>
@@ -252,15 +290,31 @@ export default function CatalogPage() {
         )}
 
         {/* Product Cards Grid: 2 columns on mobile, 3-4 columns on desktop */}
-        {!loading && filteredSarees.length > 0 && (
+        {!loading && displayedSarees.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6">
-            {filteredSarees.map((saree) => (
+            {displayedSarees.map((saree) => (
               <SareeCard
                 key={saree.id}
                 saree={saree}
                 onOpenInquiry={handleOpenInquiry}
               />
             ))}
+          </div>
+        )}
+
+        {/* Load More Button (Only if total products > 12 and more remain) */}
+        {!loading && hasMore && (
+          <div className="mt-10 sm:mt-12 text-center space-y-2.5">
+            <button
+              onClick={handleLoadMore}
+              className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-2xl bg-white hover:bg-[#F8F3EA] text-[#722F37] font-bold text-xs sm:text-sm border-2 border-[#D4AF37]/60 hover:border-[#722F37] shadow-sm hover:shadow-md transition-all active:scale-[0.99] group"
+            >
+              <Sparkles className="w-4 h-4 text-[#D4AF37] group-hover:rotate-12 transition-transform" />
+              <span>Load More Products ({Math.min(PAGE_SIZE, remainingCount)} more)</span>
+            </button>
+            <p className="text-[11px] text-stone-500 font-medium">
+              Showing {displayedSarees.length} of {filteredSarees.length} creations
+            </p>
           </div>
         )}
       </main>

@@ -6,8 +6,12 @@ export const metadata: Metadata = {
   description:
     "Exquisite handwoven Sarees, bespoke designer Suits, royal bridal Lehengas, and contemporary Indo-Western ensembles. Timeless Indian heritage and royal craftsmanship.",
   icons: {
-    icon: "/logo.png",
-    apple: "/logo.png",
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+      { url: "/logo.png" },
+    ],
+    shortcut: "/icon.png",
+    apple: "/icon.png",
   },
 };
 

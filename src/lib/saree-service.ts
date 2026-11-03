@@ -7,16 +7,17 @@ const LOCAL_STORAGE_KEY = "anandam_sarees_store_v2";
 const LOCAL_INQUIRIES_KEY = "anandam_inquiries_store_v2";
 
 function getLocalSarees(): Saree[] {
-  if (typeof window === "undefined") return INITIAL_SAREES;
+  if (typeof window === "undefined") return [];
   try {
     const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!stored) {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_SAREES));
-      return INITIAL_SAREES;
+    if (!stored) return [];
+    const items = JSON.parse(stored);
+    if (Array.isArray(items)) {
+      return items.filter((s: Saree) => !s.id?.startsWith("prod-"));
     }
-    return JSON.parse(stored);
+    return [];
   } catch (err) {
-    return INITIAL_SAREES;
+    return [];
   }
 }
 
@@ -65,8 +66,68 @@ function saveLocalInquiries(inquiries: Inquiry[]): void {
 
 function mapDbRowToSaree(row: any): Saree {
   let secImg = row.secondary_image_url;
-  if (!secImg && Array.isArray(row.secondary_images) && row.secondary_images.length > 0) {
-    secImg = row.secondary_images[0];
+  let secImages: string[] = [];
+  if (Array.isArray(row.secondary_images) && row.secondary_images.length > 0) {
+    secImages = row.secondary_images;
+    if (!secImg) secImg = row.secondary_images[0];
+  } else if (typeof row.secondary_images === "string") {
+    try {
+      const parsed = JSON.parse(row.secondary_images);
+      if (Array.isArray(parsed)) {
+        secImages = parsed;
+        if (!secImg && parsed.length > 0) secImg = parsed[0];
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  let sizes: string[] = [];
+  if (Array.isArray(row.sizes) && row.sizes.length > 0) {
+    sizes = row.sizes;
+  } else if (typeof row.sizes === "string" && row.sizes.trim()) {
+    try {
+      const parsed = JSON.parse(row.sizes);
+      if (Array.isArray(parsed)) {
+        sizes = parsed;
+      } else {
+        sizes = row.sizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+      }
+    } catch {
+      sizes = row.sizes.split(",").map((s: string) => s.trim()).filter(Boolean);
+    }
+  }
+
+  let description = row.description || "";
+
+  // Always parse sizes from description comment — this is the reliable fallback
+  // when the Supabase `sizes` column doesn't exist or returns null
+  const sizeMatch = description.match(/<!--SIZES:(.*?)-->/);
+  if (sizeMatch && sizeMatch[1]) {
+    try {
+      const parsedSizes = JSON.parse(sizeMatch[1]);
+      if (Array.isArray(parsedSizes) && parsedSizes.length > 0) {
+        // Description-embedded sizes override DB column if DB column is empty
+        if (sizes.length === 0) sizes = parsedSizes;
+      }
+    } catch {
+      // ignore
+    }
+    description = description.replace(/<!--SIZES:.*?-->/g, "").trim();
+  }
+
+  const secImgMatch = description.match(/<!--SEC_IMAGES:(.*?)-->/);
+  if (secImgMatch && secImgMatch[1]) {
+    try {
+      const parsedImages = JSON.parse(secImgMatch[1]);
+      if (Array.isArray(parsedImages) && secImages.length === 0) {
+        secImages = parsedImages;
+        if (!secImg && parsedImages.length > 0) secImg = parsedImages[0];
+      }
+    } catch {
+      // ignore
+    }
+    description = description.replace(/<!--SEC_IMAGES:.*?-->/g, "").trim();
   }
 
   return {
@@ -78,7 +139,9 @@ function mapDbRowToSaree(row: any): Saree {
     type: (row.type as ProductType) || "Saree",
     imageUrl: row.image_url,
     secondaryImageUrl: secImg || undefined,
-    description: row.description || "",
+    secondaryImages: secImages.length > 0 ? secImages : undefined,
+    sizes: sizes.length > 0 ? sizes : undefined,
+    description: description,
     fabric: row.fabric || "",
     length: row.length || "Standard ethnic wear dimensions",
     blouseIncluded: Boolean(row.blouse_included),
@@ -97,10 +160,36 @@ function mapSareeToDbRow(saree: Partial<Saree>): Record<string, any> {
   if (saree.originalPrice !== undefined) row.original_price = saree.originalPrice;
   if (saree.type !== undefined) row.type = saree.type;
   if (saree.imageUrl !== undefined) row.image_url = saree.imageUrl;
-  if (saree.secondaryImageUrl !== undefined) {
+
+  if (saree.secondaryImages !== undefined) {
+    row.secondary_images = saree.secondaryImages;
+    row.secondary_image_url = saree.secondaryImages[0] || null;
+  } else if (saree.secondaryImageUrl !== undefined) {
     row.secondary_images = saree.secondaryImageUrl ? [saree.secondaryImageUrl] : [];
+    row.secondary_image_url = saree.secondaryImageUrl || null;
   }
-  if (saree.description !== undefined) row.description = saree.description;
+
+  if (saree.sizes !== undefined) {
+    row.sizes = saree.sizes;
+  }
+
+  let desc = saree.description !== undefined ? saree.description : "";
+  // Strip old tags
+  desc = desc.replace(/<!--SIZES:.*?-->/g, "").replace(/<!--SEC_IMAGES:.*?-->/g, "").trim();
+
+  // Always embed sizes in description as fallback — this ensures sizes survive
+  // even if the Supabase `sizes` column doesn't exist yet
+  if (saree.sizes !== undefined) {
+    desc += `\n<!--SIZES:${JSON.stringify(saree.sizes)}-->`;
+  }
+  if (saree.secondaryImages && saree.secondaryImages.length > 0) {
+    desc += `\n<!--SEC_IMAGES:${JSON.stringify(saree.secondaryImages)}-->`;
+  }
+
+  if (saree.description !== undefined || saree.sizes !== undefined || (saree.secondaryImages && saree.secondaryImages.length > 0)) {
+    row.description = desc;
+  }
+
   if (saree.fabric !== undefined) row.fabric = saree.fabric;
   if (saree.length !== undefined) row.length = saree.length;
   if (saree.blouseIncluded !== undefined) row.blouse_included = saree.blouseIncluded;
@@ -132,11 +221,11 @@ export async function fetchAllSarees(): Promise<{ data: Saree[]; error: string |
         return { data: getLocalSarees(), error: null };
       }
 
-      if (data && data.length > 0) {
+      if (data) {
         return { data: data.map(mapDbRowToSaree), error: null };
       }
 
-      return { data: getLocalSarees(), error: null };
+      return { data: [], error: null };
     }
 
     return { data: getLocalSarees(), error: null };
@@ -192,7 +281,23 @@ export async function createSaree(
       dbPayload.slug = slug;
       dbPayload.created_at = newSaree.createdAt;
 
-      const { data, error } = await supabase.from("sarees").insert(dbPayload).select().single();
+      let { data, error } = await supabase.from("sarees").insert(dbPayload).select().single();
+      if (error && error.message?.toLowerCase().includes("sizes")) {
+        // `sizes` column doesn't exist in DB — remove it from payload
+        // Sizes are already embedded in description as <!--SIZES:[...]--> so they won't be lost
+        delete dbPayload.sizes;
+        const retry = await supabase.from("sarees").insert(dbPayload).select().single();
+        data = retry.data;
+        error = retry.error;
+      }
+      if (error && (error.message?.toLowerCase().includes("secondary_images") || error.message?.toLowerCase().includes("secondary_image_url"))) {
+        delete dbPayload.secondary_images;
+        delete dbPayload.secondary_image_url;
+        const retry = await supabase.from("sarees").insert(dbPayload).select().single();
+        data = retry.data;
+        error = retry.error;
+      }
+
       if (error) {
         // Fallback to local
         const current = getLocalSarees();
@@ -220,12 +325,38 @@ export async function updateSaree(
   try {
     if (isSupabaseConfigured && supabase) {
       const dbPayload = mapSareeToDbRow(updates);
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from("sarees")
         .update(dbPayload)
         .eq("id", id)
         .select()
         .single();
+
+      if (error && error.message?.toLowerCase().includes("sizes")) {
+        // `sizes` column doesn't exist in DB — remove it from payload
+        // Sizes are already embedded in description as <!--SIZES:[...]--> so they won't be lost
+        delete dbPayload.sizes;
+        const retry = await supabase
+          .from("sarees")
+          .update(dbPayload)
+          .eq("id", id)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
+      if (error && (error.message?.toLowerCase().includes("secondary_images") || error.message?.toLowerCase().includes("secondary_image_url"))) {
+        delete dbPayload.secondary_images;
+        delete dbPayload.secondary_image_url;
+        const retry = await supabase
+          .from("sarees")
+          .update(dbPayload)
+          .eq("id", id)
+          .select()
+          .single();
+        data = retry.data;
+        error = retry.error;
+      }
 
       if (!error && data) {
         return { data: mapDbRowToSaree(data), error: null };
@@ -308,6 +439,9 @@ export async function deleteSaree(
     if (found) {
       if (found.imageUrl) imagesToDelete.push(found.imageUrl);
       if (found.secondaryImageUrl) imagesToDelete.push(found.secondaryImageUrl);
+      if (Array.isArray(found.secondaryImages)) {
+        imagesToDelete.push(...found.secondaryImages);
+      }
     }
 
     if (isSupabaseConfigured && supabase) {
@@ -403,11 +537,36 @@ export async function submitInquiry(
   inquiry: Omit<Inquiry, "id" | "createdAt" | "status">
 ): Promise<{ data: Inquiry | null; error: string | null }> {
   try {
-    const address = inquiry.customerAddress || inquiry.customerCity || "";
+    const address = [
+      inquiry.customerAddress?.trim(),
+      inquiry.customerCity?.trim(),
+      inquiry.customerState?.trim(),
+    ]
+      .filter(Boolean)
+      .join(", ");
+
+    const preferences: string[] = [];
+    if (inquiry.selectedSize) preferences.push(`Size: ${inquiry.selectedSize}`);
+    if (inquiry.preferredBudget) preferences.push(`Budget: ${inquiry.preferredBudget}`);
+    if (inquiry.customerCity || inquiry.customerState) {
+      preferences.push(
+        `Location: ${[inquiry.customerCity, inquiry.customerState].filter(Boolean).join(", ")}`
+      );
+    }
+
+    let detailedNotes = inquiry.notes?.trim() || "";
+    if (preferences.length > 0) {
+      const meta = `[${preferences.join(" | ")}]`;
+      detailedNotes = detailedNotes ? `${meta} ${detailedNotes}` : meta;
+    }
+
+    const cityState = [inquiry.customerCity, inquiry.customerState].filter(Boolean).join(", ") || address;
+
     const newInquiry: Inquiry = {
       ...inquiry,
       customerAddress: address,
-      customerCity: address,
+      customerCity: cityState,
+      notes: detailedNotes,
       id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `inq-${Date.now()}`,
       status: "new",
       createdAt: new Date().toISOString(),
@@ -421,8 +580,8 @@ export async function submitInquiry(
         quantity: inquiry.quantity,
         customer_name: inquiry.customerName,
         customer_phone: inquiry.customerPhone,
-        customer_city: address || null,
-        notes: inquiry.notes || null,
+        customer_city: cityState || null,
+        notes: detailedNotes || null,
         status: "new",
       };
 

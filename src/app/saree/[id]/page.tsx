@@ -101,9 +101,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  // Exactly 2 images per product
+  // Up to 8 images per product (1 Primary + up to 7 secondary)
   const productImages = [saree.imageUrl];
-  if (saree.secondaryImageUrl) {
+  if (Array.isArray(saree.secondaryImages) && saree.secondaryImages.length > 0) {
+    saree.secondaryImages.forEach((img) => {
+      if (img && !productImages.includes(img)) productImages.push(img);
+    });
+  } else if (saree.secondaryImageUrl && !productImages.includes(saree.secondaryImageUrl)) {
     productImages.push(saree.secondaryImageUrl);
   }
 
@@ -158,7 +162,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       {/* Main Product Showcase */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-grow">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
-          {/* Left Column: 2 Images Gallery Showcase */}
+          {/* Left Column: Gallery Showcase (Up to 8 Images) */}
           <div className="lg:col-span-6 space-y-4">
             <div className="relative aspect-[3/4] w-full rounded-2xl overflow-hidden bg-[#F7F3EB] border border-[#EADBCE] shadow-sm">
               <ImageWithFallback
@@ -180,17 +184,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               )}
             </div>
 
-            {/* Exactly 2 Image Selectors */}
+            {/* Thumbnail Selectors (Up to 8 Images) */}
             {productImages.length > 1 && (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-2 no-scrollbar">
                 {productImages.map((img, idx) => (
                   <button
                     key={idx}
                     type="button"
                     onClick={() => setSelectedImage(img)}
-                    className={`relative w-24 h-32 rounded-xl overflow-hidden border-2 transition-all ${
-                      selectedImage === img
-                        ? "border-[#722F37] shadow-md scale-95"
+                    className={`relative w-16 h-20 sm:w-20 sm:h-24 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all ${
+                      (selectedImage || saree.imageUrl) === img
+                        ? "border-[#722F37] shadow-md scale-95 ring-2 ring-[#D4AF37]/50"
                         : "border-[#EADBCE] opacity-75 hover:opacity-100"
                     }`}
                   >
@@ -200,8 +204,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                       fill
                       className="object-cover"
                     />
-                    <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1.5 py-0.5 rounded">
-                      View {idx + 1}
+                    <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[8px] sm:text-[9px] px-1 py-0.5 rounded">
+                      {idx === 0 ? "Cover" : `#${idx + 1}`}
                     </span>
                   </button>
                 ))}
@@ -255,6 +259,25 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   {saree.description}
                 </p>
               </div>
+
+              {/* Available Sizes for Non-Saree Ensembles */}
+              {saree.type !== "Saree" && saree.sizes && saree.sizes.length > 0 && (
+                <div className="p-3.5 rounded-xl bg-[#F8F3EA] border border-[#EADBCE] space-y-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#722F37] block">
+                    Available Sizes in Stock
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {saree.sizes.map((sz) => (
+                      <span
+                        key={sz}
+                        className="px-3 py-1 rounded-lg text-xs font-bold bg-white text-[#722F37] border border-[#D4AF37]/50 shadow-sm"
+                      >
+                        {sz}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Specifications Grid (Dimension removed) */}
               <div className="border border-[#EADBCE] rounded-xl overflow-hidden text-xs">

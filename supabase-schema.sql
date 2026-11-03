@@ -20,9 +20,14 @@ CREATE TABLE IF NOT EXISTS public.sarees (
     blouse_included BOOLEAN DEFAULT true,
     color TEXT,
     featured BOOLEAN DEFAULT false,
+    sizes TEXT[] DEFAULT ARRAY[]::TEXT[],
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration helpers for existing tables:
+ALTER TABLE public.sarees ADD COLUMN IF NOT EXISTS secondary_images TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE public.sarees ADD COLUMN IF NOT EXISTS sizes TEXT[] DEFAULT ARRAY[]::TEXT[];
 
 -- Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_sarees_type ON public.sarees(type);
