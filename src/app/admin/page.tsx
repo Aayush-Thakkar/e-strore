@@ -504,7 +504,7 @@ export default function AdminDashboardPage() {
               </div>
               <div>
                 <span className="font-serif-luxury text-lg font-bold tracking-wider text-[#FDFBF7] block leading-tight">
-                  ANANDAM ATELIER
+                  ANANDAM BOUTIQUE
                 </span>
                 <span className="text-[10px] uppercase tracking-widest text-[#D4AF37] block">
                   Management Portal
@@ -557,7 +557,7 @@ export default function AdminDashboardPage() {
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <span className="text-xs text-stone-500 font-medium">Signature Atelier Pieces</span>
+              <span className="text-xs text-stone-500 font-medium">Signature Pieces</span>
               <strong className="text-xl font-bold text-[#241416] block">
                 {sarees.filter((s) => s.featured).length}
               </strong>
@@ -1098,7 +1098,7 @@ export default function AdminDashboardPage() {
                     onChange={(e) => setFormData({ ...formData, featured: e.target.checked })}
                     className="w-4 h-4 rounded text-[#722F37] focus:ring-[#722F37]"
                   />
-                  <span>Highlight as Signature Atelier Piece</span>
+                  <span>Highlight as Signature Piece</span>
                 </label>
 
                 <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-800">

@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { ShieldCheck, Lock, FileSpreadsheet, MessageCircle, UserCheck, AlertCircle, ArrowLeft, Mail, Phone, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "DPDP Privacy Policy | Anandam Sarees & Ethnic Atelier",
+  title: "DPDP Privacy Policy | Anandam Sarees & Ethnic Boutique",
   description:
     "Learn how Anandam Sarees collects, processes, and protects your digital personal data under India's Digital Personal Data Protection Act, 2023, including WhatsApp messaging and Google Sheets storage.",
 };
@@ -59,7 +59,7 @@ export default function PrivacyPolicyPage() {
             This Privacy Policy explains how <strong>Anandam Sarees</strong> (&quot;Anandam&quot;, &quot;we&quot;, &quot;us&quot;, or &quot;our&quot;), acting as a <strong>Data Fiduciary</strong> under India&apos;s <strong>Digital Personal Data Protection Act, 2023 (DPDP Act)</strong>, collects, processes, stores, and protects personal data provided by customers and patrons (&quot;Data Principals&quot;) when inquiring about or ordering our handcrafted sarees, suits, lehengas, and Indo-Western attire.
           </p>
           <p>
-            We process your personal data solely for specified, lawful, and transparent purposes associated with fulfilling your bespoke ethnic fashion inquiries, coordinating orders, and providing exceptional atelier service.
+            We process your personal data solely for specified, lawful, and transparent purposes associated with fulfilling your bespoke ethnic fashion inquiries, coordinating orders, and providing exceptional boutique service.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function PrivacyPolicyPage() {
               </p>
               <ul className="list-disc list-inside space-y-1 text-stone-700 pl-1">
                 <li>Google Sheets is used internally by our fulfillment and dispatch team to track orders from weaving to doorstep courier delivery.</li>
-                <li>Access to the Google Sheet is strictly limited to authenticated atelier staff via multi-factor authentication (MFA).</li>
+                <li>Access to the Google Sheet is strictly limited to authenticated boutique staff via multi-factor authentication (MFA).</li>
                 <li>We do not monetize, rent, or sell your customer records to marketing aggregators or advertising networks.</li>
               </ul>
             </div>
@@ -226,15 +226,15 @@ export default function PrivacyPolicyPage() {
               <Mail className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
               <div>
                 <span className="text-[10px] uppercase text-stone-500 font-semibold block">Email</span>
-                <strong className="text-stone-900">privacy@anandamsarees.in</strong>
+                <strong className="text-stone-900">sarees.anandam01@gmail.com</strong>
               </div>
             </div>
 
             <div className="p-3 bg-white rounded-xl border border-[#EADBCE] flex items-center gap-2.5">
               <MapPin className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
               <div>
-                <span className="text-[10px] uppercase text-stone-500 font-semibold block">Atelier Location</span>
-                <strong className="text-stone-900">Indore, Madhya Pradesh, India</strong>
+                <span className="text-[10px] uppercase text-stone-500 font-semibold block">Store Location</span>
+                <strong className="text-stone-900">Raipur, Chhattisgarh, India</strong>
               </div>
             </div>
           </div>

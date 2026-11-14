@@ -60,29 +60,29 @@ ALTER TABLE public.inquiries ENABLE ROW LEVEL SECURITY;
 
 -- Sarees Policies:
 DROP POLICY IF EXISTS "Public can view all sarees" ON public.sarees;
-CREATE POLICY "Public can view all sarees" ON public.sarees FOR SELECT USING (true);
+CREATE POLICY "Public can view all sarees" ON public.sarees FOR SELECT TO anon, authenticated USING (true);
 
 DROP POLICY IF EXISTS "Allow insert on sarees" ON public.sarees;
-CREATE POLICY "Allow insert on sarees" ON public.sarees FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow insert on sarees" ON public.sarees FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow update on sarees" ON public.sarees;
-CREATE POLICY "Allow update on sarees" ON public.sarees FOR UPDATE USING (true);
+CREATE POLICY "Allow update on sarees" ON public.sarees FOR UPDATE TO anon, authenticated USING (true);
 
 DROP POLICY IF EXISTS "Allow delete on sarees" ON public.sarees;
-CREATE POLICY "Allow delete on sarees" ON public.sarees FOR DELETE USING (true);
+CREATE POLICY "Allow delete on sarees" ON public.sarees FOR DELETE TO anon, authenticated USING (true);
 
 -- Inquiries Policies:
 DROP POLICY IF EXISTS "Public can submit inquiries" ON public.inquiries;
-CREATE POLICY "Public can submit inquiries" ON public.inquiries FOR INSERT WITH CHECK (true);
+CREATE POLICY "Public can submit inquiries" ON public.inquiries FOR INSERT TO anon, authenticated WITH CHECK (true);
 
 DROP POLICY IF EXISTS "Allow view inquiries" ON public.inquiries;
-CREATE POLICY "Allow view inquiries" ON public.inquiries FOR SELECT USING (true);
+CREATE POLICY "Allow view inquiries" ON public.inquiries FOR SELECT TO anon, authenticated USING (true);
 
 DROP POLICY IF EXISTS "Allow update inquiries" ON public.inquiries;
-CREATE POLICY "Allow update inquiries" ON public.inquiries FOR UPDATE USING (true);
+CREATE POLICY "Allow update inquiries" ON public.inquiries FOR UPDATE TO anon, authenticated USING (true);
 
 DROP POLICY IF EXISTS "Allow delete inquiries" ON public.inquiries;
-CREATE POLICY "Allow delete inquiries" ON public.inquiries FOR DELETE USING (true);
+CREATE POLICY "Allow delete inquiries" ON public.inquiries FOR DELETE TO anon, authenticated USING (true);
 
 -- ==============================================================================
 -- 4. CREATE SUPABASE STORAGE BUCKET: 'saree-images'
@@ -95,19 +95,23 @@ ON CONFLICT (id) DO UPDATE SET public = true;
 DROP POLICY IF EXISTS "Public Access to Saree Images" ON storage.objects;
 CREATE POLICY "Public Access to Saree Images"
     ON storage.objects FOR SELECT
+    TO anon, authenticated
     USING (bucket_id = 'saree-images');
 
 DROP POLICY IF EXISTS "Allow upload to saree images" ON storage.objects;
 CREATE POLICY "Allow upload to saree images"
     ON storage.objects FOR INSERT
+    TO anon, authenticated
     WITH CHECK (bucket_id = 'saree-images');
 
 DROP POLICY IF EXISTS "Allow update saree images" ON storage.objects;
 CREATE POLICY "Allow update saree images"
     ON storage.objects FOR UPDATE
+    TO anon, authenticated
     USING (bucket_id = 'saree-images');
 
 DROP POLICY IF EXISTS "Allow delete saree images" ON storage.objects;
 CREATE POLICY "Allow delete saree images"
     ON storage.objects FOR DELETE
+    TO anon, authenticated
     USING (bucket_id = 'saree-images');

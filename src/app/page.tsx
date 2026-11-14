@@ -17,6 +17,7 @@ export default function CatalogPage() {
   // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [priceRange, setPriceRange] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"featured" | "price-asc" | "price-desc" | "newest">("featured");
 
   // Modal State
@@ -50,7 +51,7 @@ export default function CatalogPage() {
   // Reset pagination whenever filters or search query change
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, selectedCategory, sortBy]);
+  }, [searchQuery, selectedCategory, priceRange, sortBy]);
 
   const handleOpenInquiry = (saree: Saree, quantity: number) => {
     setActiveInquirySaree(saree);
@@ -81,9 +82,18 @@ export default function CatalogPage() {
 
         // Category filter (Saree, Suit, Lehenga, Indo-Western)
         if (selectedCategory !== "All") {
-          if (saree.type.toLowerCase() !== selectedCategory.toLowerCase()) {
+          if ((saree.type || "").toLowerCase() !== selectedCategory.toLowerCase()) {
             return false;
           }
+        }
+
+        // Price range filter
+        if (priceRange === "1000-5000") {
+          if (saree.price < 1000 || saree.price > 5000) return false;
+        } else if (priceRange === "5000-10000") {
+          if (saree.price < 5000 || saree.price > 10000) return false;
+        } else if (priceRange === "10000+") {
+          if (saree.price < 10000) return false;
         }
 
         return true;
@@ -97,7 +107,7 @@ export default function CatalogPage() {
         if (!a.featured && b.featured) return 1;
         return 0;
       });
-  }, [sarees, searchQuery, selectedCategory, sortBy]);
+  }, [sarees, searchQuery, selectedCategory, priceRange, sortBy]);
 
   // Paginated Products (12 items per batch)
   const displayedSarees = useMemo(() => {
@@ -114,11 +124,12 @@ export default function CatalogPage() {
   const clearAllFilters = () => {
     setSearchQuery("");
     setSelectedCategory("All");
+    setPriceRange("all");
     setSortBy("featured");
     setVisibleCount(PAGE_SIZE);
   };
 
-  const hasActiveFilters = searchQuery !== "" || selectedCategory !== "All" || sortBy !== "featured";
+  const hasActiveFilters = searchQuery !== "" || selectedCategory !== "All" || priceRange !== "all" || sortBy !== "featured";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#FDFBF7]">
@@ -129,24 +140,31 @@ export default function CatalogPage() {
         <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-[#D4AF37]/10 blur-3xl pointer-events-none" />
 
-        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-3 sm:space-y-4">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold bg-[#D4AF37]/20 text-[#F4E5BD] border border-[#D4AF37]/40">
-            <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37]" />
-            <span>आनन्दम् • Authentic Ethnic Atelier</span>
-          </div>
-
-          <h1 className="font-serif-luxury text-2xl sm:text-4xl md:text-5xl font-bold tracking-tight text-[#FDFBF7] leading-tight px-2">
-            Where Affordability Meets Premiumness
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-4 sm:space-y-5">
+          {/* Contrasting Serif / Script Tagline Typography */}
+          <h1 className="flex flex-wrap items-center justify-center gap-x-2.5 sm:gap-x-3.5 gap-y-1 text-center px-2 py-1 leading-tight">
+            <span className="font-serif-luxury uppercase tracking-widest text-lg sm:text-2xl md:text-3xl font-bold text-[#FDFBF7]">
+              Where
+            </span>
+            <span className="font-script text-3xl sm:text-5xl md:text-6xl text-[#D4AF37] font-normal px-1 sm:px-2 inline-block -rotate-1">
+              Affordability
+            </span>
+            <span className="font-serif-luxury uppercase tracking-widest text-lg sm:text-2xl md:text-3xl font-bold text-[#FDFBF7]">
+              Meets Premiumness
+            </span>
           </h1>
 
-          <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base text-[#F4E5BD]/90 font-light leading-relaxed px-3">
-            Handcrafted Sarees, bespoke Suits, bridal Lehengas, and Indo-Western wear sourced directly from authentic weaver hubs. Pure fabrics, transparent fair pricing, and personal support on WhatsApp — luxury ethnic wear made genuinely accessible.
+          <p className="max-w-2xl mx-auto text-xs sm:text-sm md:text-base text-[#F4E5BD]/95 font-light leading-relaxed px-3">
+            Based in Raipur C.G India, Anandam is a trusted destination for curated suits, sarees, lehengas, and Indo-Western wear. Every piece is handpicked for genuine fabrics, premium craftsmanship, and authentic elegance. Now online, we bring our boutique’s quality, transparent service, and reliable doorstep delivery directly to you.
           </p>
 
           {/* Grounded Trust Pillars for Mobile & Desktop */}
-          <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-[#F4E5BD]">
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-[#F4E5BD]">
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
-              ✓ Direct Weaver Sourcing
+              ✓ Video Call Facility
+            </span>
+            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
+              ✓ Cash on Delivery
             </span>
             <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-black/20 border border-[#D4AF37]/30">
               ✓ No Middleman Markups
@@ -205,9 +223,9 @@ export default function CatalogPage() {
             )}
           </div>
 
-          {/* Search and Sort Row */}
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 pt-2 border-t border-[#F2ECE4]">
-            <div className="md:col-span-8 relative">
+          {/* Search, Price Filter, and Sort Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-3 pt-2 border-t border-[#F2ECE4]">
+            <div className="sm:col-span-2 md:col-span-6 relative">
               <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
@@ -226,7 +244,20 @@ export default function CatalogPage() {
               )}
             </div>
 
-            <div className="md:col-span-4">
+            <div className="md:col-span-3">
+              <select
+                value={priceRange}
+                onChange={(e) => setPriceRange(e.target.value)}
+                className="w-full py-2.5 px-3.5 bg-[#FDFBF7] text-sm text-[#241416] rounded-xl border border-[#EADBCE] focus:border-[#722F37] focus:outline-none focus:ring-1 focus:ring-[#722F37]"
+              >
+                <option value="all">Price: All Ranges</option>
+                <option value="1000-5000">₹1,000 to ₹5,000</option>
+                <option value="5000-10000">₹5,000 to ₹10,000</option>
+                <option value="10000+">₹10,000+</option>
+              </select>
+            </div>
+
+            <div className="md:col-span-3">
               <select
                 value={sortBy}
                 onChange={(e: any) => setSortBy(e.target.value)}
@@ -247,6 +278,14 @@ export default function CatalogPage() {
             Showing <strong className="text-[#722F37] font-bold">{displayedSarees.length}</strong> of{" "}
             <strong className="text-[#722F37] font-bold">{filteredSarees.length}</strong> items
             {selectedCategory !== "All" && ` in ${selectedCategory}`}
+            {priceRange !== "all" && (
+              <span>
+                {" • "}
+                {priceRange === "1000-5000" && "₹1,000 to ₹5,000"}
+                {priceRange === "5000-10000" && "₹5,000 to ₹10,000"}
+                {priceRange === "10000+" && "₹10,000+"}
+              </span>
+            )}
           </p>
         </div>
 

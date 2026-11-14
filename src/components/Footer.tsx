@@ -47,39 +47,40 @@ export function Footer() {
         {/* Brand Column */}
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-[#D4AF37] bg-[#FDFBF7] flex-shrink-0">
+            <div className="relative w-12 h-12 flex-shrink-0">
               <Image
                 src="/logo.png"
-                alt="Anandam"
+                alt="आनंदम"
                 fill
-                className="object-contain p-0.5"
+                className="object-contain"
               />
             </div>
             <div>
               <span className="font-serif-luxury text-xl font-bold tracking-wide text-[#F4E5BD] block leading-tight">
-                आनन्दम्
+                आनंदम
               </span>
               <span className="text-[9px] sm:text-[10px] uppercase tracking-tight sm:tracking-widest text-[#D4AF37] block mt-0.5 whitespace-nowrap">
-                Sarees • Suits • Lehengas • Indo-Western
+                Suit • Saree • Lehenga • Indo-Western
               </span>
             </div>
           </div>
           <p className="text-xs text-[#EADBCE]/80 leading-relaxed">
-            Where Affordability Meets Premiumness. Preserving authentic Indian craftsmanship with direct weaver sourcing, honest transparent pricing, and personal care on WhatsApp.
+            Where Affordability Meets Premiumness. Based in Raipur C.G India, Anandam is a trusted destination for curated suits, sarees, lehengas, and Indo-Western wear with boutique quality, transparent service, and reliable doorstep delivery.
           </p>
         </div>
 
-        {/* Categories & Legal */}
+        {/* Collections */}
         <div>
           <h4 className="font-serif-luxury text-sm font-semibold text-[#D4AF37] uppercase tracking-wider mb-3">
-            Collections & Information
+            Collections
           </h4>
           <ul className="space-y-2 text-xs text-[#EADBCE]/80">
-            <li><Link href="/?type=Saree" className="hover:text-white transition-colors">Royal Sarees</Link></li>
-            <li><Link href="/?type=Suit" className="hover:text-white transition-colors">Designer Suits</Link></li>
-            <li><Link href="/?type=Lehenga" className="hover:text-white transition-colors">Bridal & Festive Lehengas</Link></li>
-            <li><Link href="/?type=Indo-Western" className="hover:text-white transition-colors">Indo-Western Ensembles</Link></li>
-            <li className="pt-1">
+            <li><Link href="/?type=Suit" className="hover:text-white transition-colors">Suits</Link></li>
+            <li><Link href="/?type=Saree" className="hover:text-white transition-colors">Sarees</Link></li>
+            <li><Link href="/?type=Lehenga" className="hover:text-white transition-colors">Lehengas</Link></li>
+            <li><Link href="/?type=Indo-Western" className="hover:text-white transition-colors">Indo-Western</Link></li>
+            <li><Link href="/?type=Gown" className="hover:text-white transition-colors">Gowns</Link></li>
+            <li className="pt-2">
               <Link href="/privacy-policy" className="text-[#D4AF37] hover:underline font-semibold transition-colors">
                 DPDP Privacy Policy
               </Link>
@@ -87,32 +88,43 @@ export function Footer() {
           </ul>
         </div>
 
-        {/* Contact Details (Privacy preserved - no raw phone digits displayed) */}
+        {/* Contact Information */}
         <div>
           <h4 className="font-serif-luxury text-sm font-semibold text-[#D4AF37] uppercase tracking-wider mb-3">
-            Direct Atelier Contact
+            Contact Information
           </h4>
           <ul className="space-y-2.5 text-xs text-[#EADBCE]/80">
             <li>
               <a
-                href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent("Namaste Anandam Atelier 🙏 I would like to inquire about your collection.")}`}
+                href="tel:9039035056"
+                className="hover:text-white transition-colors flex items-center gap-1.5"
+              >
+                <span>📞 9039035056</span>
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://wa.me/919039035056"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 hover:text-white transition-colors group"
               >
                 <MessageCircle className="w-4 h-4 text-[#25D366] flex-shrink-0 group-hover:scale-110 transition-transform" />
                 <span className="font-medium underline underline-offset-4 decoration-[#D4AF37]/50 group-hover:decoration-white">
-                  Connect on WhatsApp Concierge
+                  Connect to WhatsApp
                 </span>
               </a>
             </li>
-            <li className="flex items-center gap-2">
-              <Phone className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
-              <span>Personal Styling & Sizing Inquiries</span>
+            <li className="flex items-start gap-1.5">
+              <span className="leading-relaxed">📍 Pandri Textile Market, Gate No 1 (Second Left), Raipur C.G</span>
             </li>
             <li className="flex items-center gap-2">
               <Mail className="w-4 h-4 text-[#D4AF37] flex-shrink-0" />
-              <span>inquiries@anandamsarees.in</span>
+              <span>Email: [Email Placeholder]</span>
+            </li>
+            <li className="flex items-center gap-2 pt-1 border-t border-[#D4AF37]/20">
+              <span className="text-[#D4AF37] font-medium">GST Number:</span>
+              <span>[GST Number Placeholder]</span>
             </li>
           </ul>
         </div>

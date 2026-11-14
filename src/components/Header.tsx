@@ -9,31 +9,24 @@ export function Header() {
       <div className="bg-[#54151C] text-[#F4E5BD] text-[10.5px] sm:text-xs py-1.5 sm:py-2 px-3 sm:px-4 text-center tracking-normal sm:tracking-wider flex items-center justify-center gap-1.5 sm:gap-2">
         <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37] animate-pulse flex-shrink-0" />
         <span className="truncate sm:overflow-visible">
-          Authentic Sarees, Suits, Lehengas & Indo-Western • Direct Atelier Inquiries
+          Authentic Sarees, Suits, Lehengas & Indo-Western • Direct Inquiries
         </span>
         <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#D4AF37] animate-pulse flex-shrink-0" />
       </div>
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-center sm:justify-between h-18 sm:h-22">
-          {/* Brand Logo & Typography */}
-          <Link href="/" className="flex items-center gap-2.5 sm:gap-3.5 group min-w-0">
-            <div className="relative w-12 h-12 sm:w-16 sm:h-16 rounded-xl overflow-hidden border border-[#D4AF37]/50 shadow-sm group-hover:scale-105 transition-all duration-300 bg-[#FDFBF7] flex-shrink-0">
+        <div className="flex items-center justify-center py-2 sm:py-3">
+          {/* Brand Logo, Title & Tagline Centered - Enlarged */}
+          <Link href="/" className="flex items-center justify-center group" aria-label="आनन्दम Homepage">
+            <div className="relative h-20 sm:h-24 md:h-28 lg:h-32 w-auto group-hover:scale-[1.02] transition-transform duration-300">
               <Image
-                src="/logo.png"
-                alt="आनन्दम् - Sarees, Suits, Lehenga, Indo-Western"
-                fill
+                src="/brand-logo.png"
+                alt="आनन्दम - Sarees • Suits • Lehenga • Indo-Western"
+                width={940}
+                height={378}
                 priority
-                className="object-contain p-0.5"
+                className="h-20 sm:h-24 md:h-28 lg:h-32 w-auto object-contain"
               />
-            </div>
-            <div className="text-left min-w-0">
-              <span className="font-serif-luxury text-2xl sm:text-3xl font-bold tracking-wide text-[#722F37] block leading-none">
-                आनन्दम्
-              </span>
-              <span className="text-[8.5px] xs:text-[9.5px] sm:text-[11px] uppercase tracking-tight sm:tracking-[0.2em] text-[#B8860B] font-semibold block mt-1 whitespace-nowrap">
-                Sarees • Suits • Lehenga • Indo-Western
-              </span>
             </div>
           </Link>
         </div>

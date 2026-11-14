@@ -178,7 +178,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 <div className="absolute top-4 left-4 z-10">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#722F37] text-[#F4E5BD] shadow border border-[#D4AF37]/50">
                     <Sparkles className="w-3.5 h-3.5 text-[#D4AF37]" />
-                    Atelier Signature
+                    Signature Piece
                   </span>
                 </div>
               )}
@@ -316,7 +316,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="flex items-center gap-2">
                   <RotateCcw className="w-4 h-4 text-[#B8860B]" />
-                  <span>Dedicated Atelier Support</span>
+                  <span>Dedicated Customer Support</span>
                 </div>
               </div>
             </div>

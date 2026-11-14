@@ -128,7 +128,7 @@ export default function AdminLoginPage() {
             />
           </div>
           <h2 className="font-serif-luxury text-3xl font-bold tracking-tight text-[#241416]">
-            Anandam Atelier
+            Anandam Boutique
           </h2>
           <p className="mt-1 text-xs text-stone-600">
             Authorized Personnel Portal for Catalogue & Inquiries
